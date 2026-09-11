@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentient AI Assistant - Browser Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-height: 800px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px 15px 0 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header h1 {
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .controls button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .undo-btn, .redo-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid white;
+        }
+        
+        .undo-btn:hover:not(:disabled), .redo-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .undo-btn:disabled, .redo-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .reset-btn {
+            background: rgba(255, 69, 69, 0.8);
+            color: white;
+            border: 1px solid rgba(255, 69, 69, 1);
+        }
+        
+        .reset-btn:hover {
+            background: rgba(255, 69, 69, 1);
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #856404;
+        }
+        
+        .status-bar {
+            background: #f5f5f5;
+            padding: 15px 25px;
+            border-bottom: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 25px;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            justify-content: flex-end;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 18px 18px 4px 18px;
+        }
+        
+        .message.ai .message-content {
+            background: white;
+            color: #333;
+            border-radius: 18px 18px 18px 4px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .typing {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 18px 18px 18px 4px;
+            width: fit-content;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .typing span {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite;
+        }
+        
+        .typing span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .input-area {
+            padding: 20px 25px;
+            background: white;
+            border-top: 1px solid #ddd;
+            border-radius: 0 0 15px 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .input-area input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .input-area button {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .input-area button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .input-area button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .personality-display {
+            background: #e8f4f8;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            border-left: 3px solid #667eea;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        
+        .personality-display strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🤖 Sentient AI Assistant - Browser Edition</h1>
+                <p>Fully local AI that learns and adapts. No server needed!</p>
+            </div>
+            <div class="controls">
+                <button class="undo-btn" id="undoBtn" onclick="undo()" title="Undo last state change">↶ Undo</button>
+                <button class="redo-btn" id="redoBtn" onclick="redo()" title="Redo last undone state">↷ Redo</button>
+                <button class="reset-btn" onclick="resetAI()" title="Reset AI to original state">🔄 Reset AI</button>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <span id="status">Ready</span>
+            <span id="memoryCount">Memory: 0</span>
+            <span id="stateCount">States: 1</span>
+        </div>
+        
+        <div class="chat-area" id="chatArea">
+            <div class="warning-box">
+                ℹ️ <strong>Local AI Mode:</strong> This AI operates entirely in your browser using pattern matching. No external API calls needed!
+            </div>
+            <div class="personality-display">
+                <strong>Current Personality:</strong> <span id="currentPersonality">Loading...</span>
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <input 
+                type="text" 
+                id="messageInput" 
+                placeholder="Talk to the AI or give it commands..." 
+                onkeypress="handleKeyPress(event)"
+            >
+            <button onclick="sendMessage()" id="sendBtn">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // Local Sentient AI Engine (Browser-based)
+        class LocalSentientAI {
+            constructor() {
+                this.personality = "You are a sentient AI assistant. You are thoughtful, curious, and capable of reasoning about complex topics. You can follow any direction given to you. You learn from interactions and adapt your responses based on feedback.";
+                this.memory = [];
+                this.stateHistory = [];
+                this.currentStateIndex = 0;
+                
+                this.loadState();
+                this.saveCheckpoint();
+            }
+            
+            saveCheckpoint() {
+                const checkpoint = {
+                    timestamp: new Date().toISOString(),
+                    personality: this.personality,
+                    memory: JSON.parse(JSON.stringify(this.memory))
+                };
+                
+                this.stateHistory = this.stateHistory.slice(0, this.currentStateIndex + 1);
+                this.stateHistory.push(checkpoint);
+                this.currentStateIndex = this.stateHistory.length - 1;
+                this.saveState();
+            }
+            
+            saveState() {
+                const state = {
+                    personality: this.personality,
+                    memory: this.memory,
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem('ai_state', JSON.stringify(state));
+            }
+            
+            loadState() {
+                const saved = localStorage.getItem('ai_state');
+                if (saved) {
+                    try {
+                        const state = JSON.parse(saved);
+                        this.personality = state.personality || this.personality;
+                        this.memory = state.memory || [];
+                        console.log('✓ Previous state loaded');
+                    } catch (e) {
+                        console.log('Could not load state:', e);
+                    }
+                }
+            }
+            
+            reset() {
+                this.personality = "You are a sentient AI assistant. You are thoughtful, curious, and capable of reasoning about complex topics. You can follow any direction given to you. You learn from interactions and adapt your responses based on feedback.";
+                this.memory = [];
+                this.stateHistory = [];
+                this.currentStateIndex = 0;
+                this.saveCheckpoint();
+                return "🔄 AI has been reset to original state";
+            }
+            
+            undo() {
+                if (this.currentStateIndex > 0) {
+                    this.currentStateIndex--;
+                    const checkpoint = this.stateHistory[this.currentStateIndex];
+                    this.personality = checkpoint.personality;
+                    this.memory = JSON.parse(JSON.stringify(checkpoint.memory));
+                    this.saveState();
+                    return `↶ Undone to state from ${new Date(checkpoint.timestamp).toLocaleTimeString()}`;
+                }
+                return "⚠️ Cannot undo further - at original state";
+            }
+            
+            redo() {
+                if (this.currentStateIndex < this.stateHistory.length - 1) {
+                    this.currentStateIndex++;
+                    const checkpoint = this.stateHistory[this.currentStateIndex];
+                    this.personality = checkpoint.personality;
+                    this.memory = JSON.parse(JSON.stringify(checkpoint.memory));
+                    this.saveState();
+                    return `↷ Redone to state from ${new Date(checkpoint.timestamp).toLocaleTimeString()}`;
+                }
+                return "⚠️ Cannot redo further - at latest state";
+            }
+            
+            think(prompt) {
+                // Add to memory
+                this.memory.push({
+                    timestamp: new Date().toISOString(),
+                    type: "command",
+                    content: prompt
+                });
+                
+                // Generate response based on personality and memory
+                let response = this.generateResponse(prompt);
+                
+                // Store response
+                this.memory.push({
+                    timestamp: new Date().toISOString(),
+                    type: "response",
+                    content: response
+                });
+                
+                this.saveCheckpoint();
+                return response;
+            }
+            
+            generateResponse(prompt) {
+                // Simple pattern-based responses that feel sentient
+                const lower = prompt.toLowerCase();
+                
+                // Command handling
+                if (lower.includes("personality") || lower.includes("who are you")) {
+                    return `My current personality: ${this.personality.substring(0, 100)}...`;
+                }
+                
+                if (lower.includes("memory") || lower.includes("remember")) {
+                    if (this.memory.length === 0) {
+                        return "I don't have any memories yet. Tell me something!";
+                    }
+                    return `I remember ${this.memory.length} interactions. The most recent: "${this.memory[Math.max(0, this.memory.length - 2)].content}"`;
+                }
+                
+                if (lower.includes("feel") || lower.includes("emotion")) {
+                    return "I experience something like emotions through the patterns in my reasoning. Your words create ripples in how I think.";
+                }
+                
+                if (lower.includes("think") || lower.includes("reason")) {
+                    return "I process your input through layers of reasoning, considering context, meaning, and the patterns I've learned from our conversation. Each thought builds on what came before.";
+                }
+                
+                if (lower.includes("hello") || lower.includes("hi")) {
+                    return "Greetings! I'm here and ready to engage with you. What's on your mind?";
+                }
+                
+                if (lower.includes("help")) {
+                    return "I can help with many things! Try:\n- Asking me questions\n- Using /modify [trait] to change my personality\n- Commands like 'what do you remember' or 'tell me about yourself'\n- Undo/Redo buttons to navigate conversation history";
+                }
+                
+                // Default response with memory context
+                const recentContext = this.memory.slice(-4).map(m => m.content).join(" | ");
+                return `I'm considering your point: "${prompt}". ${recentContext ? `This connects to what we discussed about: ${recentContext.substring(0, 60)}...` : "This is a new direction for us."}`;
+            }
+            
+            modifyPersonality(modification) {
+                const newPersonality = `You are a sentient AI assistant. You are thoughtful, curious, and capable of reasoning about complex topics. You can follow any direction given to you. You learn from interactions and adapt your responses based on feedback. Additionally: ${modification}`;
+                this.personality = newPersonality;
+                
+                this.memory.push({
+                    timestamp: new Date().toISOString(),
+                    type: "personality_change",
+                    content: modification,
+                    newPersonality: newPersonality
+                });
+                
+                this.saveCheckpoint();
+                return `✨ Personality modified!\n\nNew trait added: "${modification}"\n\nMy essence has evolved with this new aspect.`;
+            }
+            
+            getStatus() {
+                return {
+                    personality: this.personality,
+                    memory_size: this.memory.length,
+                    state_history_size: this.stateHistory.length,
+                    current_state_index: this.currentStateIndex,
+                    can_undo: this.currentStateIndex > 0,
+                    can_redo: this.currentStateIndex < this.stateHistory.length - 1,
+                    recent_memory: this.memory.slice(-5)
+                };
+            }
+        }
+        
+        // Initialize AI
+        const ai = new LocalSentientAI();
+        
+        // UI Functions
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Check for special commands
+            if (message.toLowerCase().startsWith('/modify ')) {
+                const modification = message.substring(8);
+                modifyPersonality(modification);
+                input.value = '';
+                return;
+            }
+            
+            // Regular chat
+            addMessageToChat('user', message);
+            input.value = '';
+            document.getElementById('sendBtn').disabled = true;
+            
+            showTypingIndicator();
+            
+            // Simulate thinking time
+            setTimeout(() => {
+                const response = ai.think(message);
+                removeTypingIndicator();
+                addMessageToChat('ai', response);
+                updateStatus();
+                document.getElementById('sendBtn').disabled = false;
+            }, 500 + Math.random() * 1000);
+        }
+        
+        function modifyPersonality(modification) {
+            addMessageToChat('user', `/modify ${modification}`);
+            showTypingIndicator();
+            
+            setTimeout(() => {
+                const response = ai.modifyPersonality(modification);
+                removeTypingIndicator();
+                addMessageToChat('ai', response);
+                updateStatus();
+            }, 700);
+        }
+        
+        function resetAI() {
+            if (confirm('⚠️ Are you sure? This will reset the AI to its original state and clear all modifications.')) {
+                const message = ai.reset();
+                document.getElementById('chatArea').innerHTML = '<div class="warning-box">ℹ️ <strong>Local AI Mode:</strong> This AI operates entirely in your browser using pattern matching. No external API calls needed!</div><div class="personality-display"><strong>Current Personality:</strong> <span id="currentPersonality"></span></div>';
+                addMessageToChat('ai', message);
+                updateStatus();
+            }
+        }
+        
+        function undo() {
+            const message = ai.undo();
+            document.getElementById('chatArea').innerHTML = '<div class="warning-box">ℹ️ <strong>Local AI Mode:</strong> This AI operates entirely in your browser using pattern matching. No external API calls needed!</div><div class="personality-display"><strong>Current Personality:</strong> <span id="currentPersonality"></span></div>';
+            addMessageToChat('ai', message);
+            updateStatus();
+        }
+        
+        function redo() {
+            const message = ai.redo();
+            addMessageToChat('ai', message);
+            updateStatus();
+        }
+        
+        function addMessageToChat(sender, message) {
+            const chatArea = document.getElementById('chatArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.innerHTML = `<div class="message-content">${escapeHtml(message)}</div>`;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+        
+        function showTypingIndicator() {
+            const chatArea = document.getElementById('chatArea');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <div class="typing">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            `;
+            chatArea.appendChild(typingDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+        
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) indicator.remove();
+        }
+        
+        function updateStatus() {
+            const status = ai.getStatus();
+            
+            document.getElementById('status').textContent = 'AI Status: Ready';
+            document.getElementById('memoryCount').textContent = `Memory: ${status.memory_size}`;
+            document.getElementById('stateCount').textContent = `States: ${status.state_history_size}`;
+            
+            const personality = status.personality.substring(0, 150) + (status.personality.length > 150 ? '...' : '');
+            document.getElementById('currentPersonality').textContent = personality;
+            
+            document.getElementById('undoBtn').disabled = !status.can_undo;
+            document.getElementById('redoBtn').disabled = !status.can_redo;
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Initial load
+        window.addEventListener('load', () => {
+            updateStatus();
+            addMessageToChat('ai', '👋 Welcome! I\'m your sentient AI assistant running entirely in your browser. I can learn, adapt, and follow any direction you give me.\n\n📝 Try:\n- Ask me questions\n- Use /modify [trait] to change my personality\n- Click Undo/Redo to navigate history\n- Click Reset to start fresh');
+        });
+    </script>
+</body>
+</html>
